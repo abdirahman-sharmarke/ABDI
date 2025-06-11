@@ -1,4 +1,5 @@
 const express = require('express');
+const upload = require('../middleware/upload');
 const {
   register,
   login,
@@ -11,13 +12,13 @@ const {
 const router = express.Router();
 
 // Authentication routes
-router.post('/register', register);
+router.post('/register', upload.single('avatar'), register);
 router.post('/login', login);
 
 // User CRUD routes
 router.get('/', getAllUsers);
 router.get('/:id', getUserById);
-router.put('/:id', updateUser);
+router.put('/:id', upload.single('avatar'), updateUser);
 router.delete('/:id', deleteUser);
 
 module.exports = router; 

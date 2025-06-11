@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const path = require('path');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -9,7 +10,7 @@ const generateToken = (userId) => {
 // Register new user
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, avatar, role } = req.body;
+    const { fullName, email, password, role } = req.body;
 
     // Validate required fields
     if (!fullName || !email || !password) {
@@ -53,12 +54,19 @@ const register = async (req, res) => {
       });
     }
 
+    // Handle avatar upload
+    let avatarUrl = null;
+    if (req.file) {
+      // If file was uploaded, create the URL
+      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+    }
+
     // Create new user
     const user = await User.create({
       fullName,
       email,
       password,
-      avatar,
+      avatar: avatarUrl,
       role: role || 'user'
     });
 
@@ -199,7 +207,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, email, password, avatar, role } = req.body;
+    const { fullName, email, password, role } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -220,12 +228,19 @@ const updateUser = async (req, res) => {
       }
     }
 
+    // Handle avatar upload
+    let avatarUrl = user.avatar; // Keep existing avatar by default
+    if (req.file) {
+      // If new file was uploaded, create the URL
+      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+    }
+
     // Update user fields
     const updateData = {};
     if (fullName) updateData.fullName = fullName;
     if (email) updateData.email = email;
     if (password) updateData.password = password;
-    if (avatar !== undefined) updateData.avatar = avatar;
+    if (req.file) updateData.avatar = avatarUrl;
     if (role && ['admin', 'user'].includes(role)) updateData.role = role;
 
     await user.update(updateData);
