@@ -9,7 +9,40 @@ const generateToken = (userId) => {
 // Register new user
 const register = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, avatar, role } = req.body;
+
+    // Validate required fields
+    if (!fullName || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: fullName, email, and password are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Validate role if provided
+    if (role && !['admin', 'user'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role must be either "admin" or "user"'
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -24,7 +57,9 @@ const register = async (req, res) => {
     const user = await User.create({
       fullName,
       email,
-      password
+      password,
+      avatar,
+      role: role || 'user'
     });
 
     // Generate token
@@ -52,24 +87,24 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
     // Find user by email
     const user = await User.findOne({ 
       where: { email },
-      attributes: ['id', 'fullName', 'email', 'password', 'isActive']
+      attributes: ['id', 'fullName', 'email', 'avatar', 'role', 'lastLogin', 'createdAt', 'password']
     });
 
     if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
-      });
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
       });
     }
 
@@ -82,6 +117,9 @@ const login = async (req, res) => {
       });
     }
 
+    // Update last login
+    await user.updateLastLogin();
+
     // Generate token
     const token = generateToken(user.id);
 
@@ -93,7 +131,10 @@ const login = async (req, res) => {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
-          isActive: user.isActive
+          avatar: user.avatar,
+          role: user.role,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt
         },
         token
       }
@@ -158,7 +199,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, email, password, isActive } = req.body;
+    const { fullName, email, password, avatar, role } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -184,7 +225,8 @@ const updateUser = async (req, res) => {
     if (fullName) updateData.fullName = fullName;
     if (email) updateData.email = email;
     if (password) updateData.password = password;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (role && ['admin', 'user'].includes(role)) updateData.role = role;
 
     await user.update(updateData);
 

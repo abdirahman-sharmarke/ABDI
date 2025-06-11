@@ -25,6 +25,38 @@ const User = sequelize.define('User', {
       notEmpty: true
     }
   },
+  avatar: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isUrl: true
+    }
+  },
+  role: {
+    type: DataTypes.ENUM('admin', 'user'),
+    allowNull: false,
+    defaultValue: 'user'
+  },
+  lastLogin: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    get() {
+      const rawValue = this.getDataValue('lastLogin');
+      if (!rawValue) return null;
+      
+      // Format as readable date and time
+      return rawValue.toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+    }
+  },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -33,21 +65,26 @@ const User = sequelize.define('User', {
       notEmpty: true
     }
   },
-  age: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 0,
-      max: 120
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+    get() {
+      const rawValue = this.getDataValue('createdAt');
+      return rawValue.toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
     }
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
   }
 }, {
   tableName: 'users',
-  timestamps: true,
+  timestamps: false,
   hooks: {
     // Hash password before creating user
     beforeCreate: async (user) => {
@@ -69,6 +106,24 @@ const User = sequelize.define('User', {
 // Instance method to compare passwords
 User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to update last login with current date and time
+User.prototype.updateLastLogin = async function() {
+  const now = new Date();
+  this.setDataValue('lastLogin', now);
+  await this.save();
+  return this;
+};
+
+// Get raw lastLogin date for database operations
+User.prototype.getRawLastLogin = function() {
+  return this.getDataValue('lastLogin');
+};
+
+// Get raw createdAt date for database operations  
+User.prototype.getRawCreatedAt = function() {
+  return this.getDataValue('createdAt');
 };
 
 // Remove password from JSON output

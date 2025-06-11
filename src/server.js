@@ -13,13 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging middleware (disabled)
-// app.use((req, res, next) => {
-//   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-//   next();
-// });
 
-// Routes
 app.get('/', (req, res) => {
   res.json({
     message: '🚀 Welcome to Node.js Backend with PostgreSQL!',
