@@ -64,8 +64,8 @@ const startServer = async () => {
     // Test database connection
     await testConnection();
     
-    // Sync database models (force: true will drop and recreate tables)
-    await sequelize.sync({ force: true });
+    // Sync database models (alter: true will add missing columns without dropping data)
+    await sequelize.sync({ alter: true });
     
     // Start the server
     app.listen(PORT, () => {
