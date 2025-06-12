@@ -11,19 +11,33 @@ const generateToken = (userId) => {
 // Register new user
 const register = async (req, res) => {
   try {
+    console.log('Request body:', req.body); // Debug log
+    console.log('Request file:', req.file); // Debug log
+    
+    // Extract data from body (works for both JSON and FormData)
     const { fullName, email, password, role } = req.body;
 
     // Validate required fields
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: fullName, email, and password are required'
+        message: 'Missing required fields: fullName, email, and password are required',
+        received: { 
+          fullName: fullName || null, 
+          email: email || null, 
+          password: password ? '[PROVIDED]' : null,
+          hasEmail: !!email,
+          emailType: typeof email
+        }
       });
     }
 
+    // Ensure email is a string and trim whitespace
+    const trimmedEmail = String(email).trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid email format'
