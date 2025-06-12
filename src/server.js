@@ -14,20 +14,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (uploaded images)
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// Note: No longer serving static uploads since we're using Supabase storage
 
 app.get('/', (req, res) => {
   res.json({
-    message: '🚀 Welcome to Node.js Backend with PostgreSQL!',
+    message: '🚀 Welcome to Node.js Backend with PostgreSQL and Supabase!',
     status: 'Server is running successfully',
     timestamp: new Date().toISOString(),
+    storage: 'Images are stored in Supabase Storage',
     endpoints: {
       health: 'GET /api/health',
       users: {
+        register: 'POST /api/users/register',
+        login: 'POST /api/users/login',
         getAll: 'GET /api/users',
         getById: 'GET /api/users/:id',
-        create: 'POST /api/users',
         update: 'PUT /api/users/:id',
         delete: 'DELETE /api/users/:id'
       }
@@ -68,7 +69,9 @@ const startServer = async () => {
     
     // Start the server
     app.listen(PORT, () => {
-      console.log('Server is run');
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`📝 API Documentation: http://localhost:${PORT}`);
+      console.log(`☁️ Using Supabase for file storage`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

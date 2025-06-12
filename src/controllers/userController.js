@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const path = require('path');
+const storageService = require('../services/storageService');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -57,8 +58,8 @@ const register = async (req, res) => {
     // Handle avatar upload
     let avatarUrl = null;
     if (req.file) {
-      // If file was uploaded, create the URL
-      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+      // If file was uploaded to Supabase, use the Supabase URL
+      avatarUrl = req.file.supabaseUrl;
     }
 
     // Create new user
@@ -231,8 +232,21 @@ const updateUser = async (req, res) => {
     // Handle avatar upload
     let avatarUrl = user.avatar; // Keep existing avatar by default
     if (req.file) {
-      // If new file was uploaded, create the URL
-      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+      // Delete old avatar from Supabase storage if it exists
+      if (user.avatar) {
+        try {
+          const oldFilePath = storageService.extractFilePathFromUrl(user.avatar);
+          if (oldFilePath) {
+            await storageService.deleteFile(oldFilePath);
+          }
+        } catch (storageError) {
+          console.warn('Warning: Could not delete old avatar from storage:', storageError.message);
+          // Continue with update even if old avatar deletion fails
+        }
+      }
+      
+      // If new file was uploaded to Supabase, use the Supabase URL
+      avatarUrl = req.file.supabaseUrl;
     }
 
     // Update user fields
@@ -270,6 +284,19 @@ const deleteUser = async (req, res) => {
         success: false,
         message: 'User not found'
       });
+    }
+
+    // Delete avatar from Supabase storage if it exists
+    if (user.avatar) {
+      try {
+        const filePath = storageService.extractFilePathFromUrl(user.avatar);
+        if (filePath) {
+          await storageService.deleteFile(filePath);
+        }
+      } catch (storageError) {
+        console.warn('Warning: Could not delete avatar from storage:', storageError.message);
+        // Continue with user deletion even if avatar deletion fails
+      }
     }
 
     await user.destroy();
